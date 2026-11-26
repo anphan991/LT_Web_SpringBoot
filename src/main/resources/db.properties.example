@@ -1,0 +1,37 @@
+# Copy this file to db.properties and fill in your local MySQL password.
+# Or configure the same values as JVM properties/environment variables:
+# bt.lt.db.url / BT_LT_DB_URL
+# bt.lt.db.user / BT_LT_DB_USER
+# bt.lt.db.password / BT_LT_DB_PASSWORD
+db.url=jdbc:mysql://127.0.0.1:3306/bt_lt_web?useSSL=false&serverTimezone=Asia/Ho_Chi_Minh&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&connectTimeout=3000&socketTimeout=5000
+db.user=root
+db.password=
+
+# Cấu hình gửi mail OTP qua SMTP (Gmail / Mailtrap / SMTP Server).
+# Có thể cấu hình tại đây hoặc qua biến môi trường / JVM properties:
+# mail.smtp.host / MAIL_HOST
+# mail.smtp.port / MAIL_PORT
+# mail.smtp.username / MAIL_USERNAME
+# mail.smtp.password / MAIL_PASSWORD (với Gmail: dùng App Password 16 ký tự)
+# mail.from.name / MAIL_FROM_NAME
+# Lưu ý: nếu để trống mật khẩu mail, hệ thống chạy ở chế độ fallback/dev:
+# mã OTP sẽ được ghi trực tiếp vào log/console để test offline.
+mail.smtp.host=smtp.gmail.com
+mail.smtp.port=587
+mail.smtp.username=
+mail.smtp.password=
+mail.smtp.auth=true
+mail.smtp.starttls.enable=true
+mail.from.name=ShopSpringBoot
+
+# Cấu hình Cloudinary để upload ảnh đại diện (Profile) qua multipart/form-data.
+# Có thể cấu hình tại db.properties / cloudinary.properties hoặc biến môi trường CLOUDINARY_*:
+# - Chế độ Signed upload: cần cloudinary.cloud_name, cloudinary.api_key, cloudinary.api_secret (hoặc cloudinary.url)
+# - Hoặc chế độ Unsigned upload: cần cloudinary.cloud_name + cloudinary.upload_preset
+cloudinary.cloud_name=
+cloudinary.api_key=
+cloudinary.api_secret=
+cloudinary.upload_preset=
+cloudinary.folder=shopmvc/avatars
+
+

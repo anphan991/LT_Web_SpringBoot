@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sitemesh>
+    <decorator-prefix>/WEB-INF/decorators/</decorator-prefix>
+    <mapping path="/*" name="web" decorator="web.jsp" />
+    <mapping path="/admin/*" name="admin" decorator="admin.jsp" />
+    <mapping path="/login" name="login" decorator="login.jsp" />
+    <mapping path="/register" name="login" decorator="login.jsp" />
+    <mapping path="/forgot-password" name="login" decorator="login.jsp" />
+    <mapping path="/verify-otp" name="login" decorator="login.jsp" />
+    <mapping path="/reset-password" name="login" decorator="login.jsp" />
+    <mapping path="/assets/*" exclude="true" />
+    <mapping path="/api*" exclude="true" />
+    <mapping path="/image" exclude="true" />
+    <mapping path="/video-file" exclude="true" />
+</sitemesh>
