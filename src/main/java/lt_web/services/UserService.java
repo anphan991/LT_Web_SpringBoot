@@ -24,4 +24,11 @@ public interface UserService {
     boolean checkExistPhone(String phone);
     boolean checkExistPhone(String phone, int excludedId);
     List<User> getAll();
+
+    List<User> findAll(int page, int pageSize);
+    List<User> search(String keyword, Integer roleid, int page, int pageSize);
+    int count();
+    int countSearch(String keyword, Integer roleid);
+    int countByRole(int roleid);
+    int countByStatus(int status);
 }

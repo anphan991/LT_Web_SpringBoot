@@ -10,13 +10,12 @@ import lt_web.controllers.CsrfFilter;
 import lt_web.controllers.RememberMeFilter;
 import org.sitemesh.builder.SiteMeshFilterBuilder;
 import org.sitemesh.config.ConfigurableSiteMeshFilter;
-import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory;
+import org.springframework.boot.tomcat.servlet.TomcatServletWebServerFactory;
 import org.springframework.boot.web.server.WebServerFactoryCustomizer;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
-import org.springframework.web.servlet.config.annotation.ViewResolverRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.view.InternalResourceViewResolver;
 import org.springframework.web.servlet.view.JstlView;
@@ -24,13 +23,16 @@ import org.springframework.web.servlet.view.JstlView;
 @Configuration
 public class WebMvcConfig implements WebMvcConfigurer {
 
-    @Override
-    public void configureViewResolvers(ViewResolverRegistry registry) {
+    @Bean
+    public InternalResourceViewResolver defaultViewResolver() {
         InternalResourceViewResolver resolver = new InternalResourceViewResolver();
         resolver.setPrefix("/WEB-INF/views/");
         resolver.setSuffix(".jsp");
+        resolver.setContentType("text/html;charset=UTF-8");
         resolver.setViewClass(JstlView.class);
-        registry.viewResolver(resolver);
+        resolver.setAlwaysInclude(true);
+        resolver.setOrder(0);
+        return resolver;
     }
 
     @Override

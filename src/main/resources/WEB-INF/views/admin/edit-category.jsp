@@ -26,7 +26,6 @@
                     </c:if>
                     <c:url value="/admin/category/edit" var="edit">
                         <c:param name="csrfToken" value="${sessionScope.csrfToken}" />
-                        <c:param name="id" value="${category.cateid}" />
                     </c:url>
                     <form id="editCategoryForm" action="${edit}" method="post" enctype="multipart/form-data" novalidate>
                         <input type="hidden" name="csrfToken" value="<c:out value='${sessionScope.csrfToken}' />">

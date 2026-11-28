@@ -8,7 +8,11 @@ import java.util.Locale;
 import lt_web.entity.User;
 import lt_web.exceptions.DataAccessException;
 import lt_web.repository.IUserRepository;
+import lt_web.repository.UserJpaRepository;
 import lt_web.utils.PasswordHasher;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,23 +20,90 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class UserRepository implements IUserRepository {
 
+    private final UserJpaRepository userJpaRepo;
+
     @PersistenceContext
     private EntityManager enma;
+
+    @Autowired
+    public UserRepository(UserJpaRepository userJpaRepo) {
+        this.userJpaRepo = userJpaRepo;
+    }
 
     @Override
     public List<User> findAll() {
         try {
-            TypedQuery<User> query = enma.createNamedQuery("User.findAll", User.class);
-            return query.getResultList();
+            return userJpaRepo.findAllByOrderByIdAsc();
         } catch (Exception e) {
             throw new DataAccessException("Không thể tải danh sách tài khoản.", e);
         }
     }
 
     @Override
+    public List<User> findAll(int page, int pageSize) {
+        int safePage = Math.max(0, page);
+        int safeSize = Math.max(1, pageSize);
+        try {
+            return userJpaRepo.findAllByOrderByIdAsc(PageRequest.of(safePage, safeSize)).getContent();
+        } catch (Exception e) {
+            throw new DataAccessException("Không thể phân trang danh sách tài khoản.", e);
+        }
+    }
+
+    @Override
+    public List<User> search(String keyword, Integer roleid, int page, int pageSize) {
+        int safePage = Math.max(0, page);
+        int safeSize = Math.max(1, pageSize);
+        String cleanKeyword = normalizeKeyword(keyword);
+        try {
+            PageRequest pageable = PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.ASC, "id"));
+            return userJpaRepo.searchUsers(cleanKeyword, roleid, pageable).getContent();
+        } catch (Exception e) {
+            throw new DataAccessException("Không thể tìm kiếm và phân trang tài khoản.", e);
+        }
+    }
+
+    @Override
+    public int count() {
+        try {
+            return (int) userJpaRepo.count();
+        } catch (Exception e) {
+            throw new DataAccessException("Không thể đếm số lượng tài khoản.", e);
+        }
+    }
+
+    @Override
+    public int countSearch(String keyword, Integer roleid) {
+        String cleanKeyword = normalizeKeyword(keyword);
+        try {
+            return (int) userJpaRepo.countSearchUsers(cleanKeyword, roleid);
+        } catch (Exception e) {
+            throw new DataAccessException("Không thể đếm số lượng tài khoản theo điều kiện tìm kiếm.", e);
+        }
+    }
+
+    @Override
+    public int countByRole(int roleid) {
+        try {
+            return (int) userJpaRepo.countByRoleid(roleid);
+        } catch (Exception e) {
+            throw new DataAccessException("Không thể đếm số lượng tài khoản theo vai trò.", e);
+        }
+    }
+
+    @Override
+    public int countByStatus(int status) {
+        try {
+            return (int) userJpaRepo.countByStatus(status);
+        } catch (Exception e) {
+            throw new DataAccessException("Không thể đếm số lượng tài khoản theo trạng thái.", e);
+        }
+    }
+
+    @Override
     public User findById(int id) {
         try {
-            return enma.find(User.class, id);
+            return userJpaRepo.findById(id).orElse(null);
         } catch (Exception e) {
             throw new DataAccessException("Không thể tải tài khoản theo ID.", e);
         }
@@ -44,11 +115,7 @@ public class UserRepository implements IUserRepository {
             return null;
         }
         try {
-            TypedQuery<User> query = enma.createQuery(
-                    "SELECT u FROM User u WHERE u.userName = :username", User.class);
-            query.setParameter("username", username.trim());
-            List<User> results = query.setMaxResults(1).getResultList();
-            return results.isEmpty() ? null : results.get(0);
+            return userJpaRepo.findFirstByUserName(username.trim()).orElse(null);
         } catch (Exception e) {
             throw new DataAccessException("Không thể tải tài khoản theo tên đăng nhập.", e);
         }
@@ -60,10 +127,7 @@ public class UserRepository implements IUserRepository {
             return null;
         }
         try {
-            TypedQuery<User> query = enma.createQuery(
-                    "SELECT u FROM User u WHERE LOWER(TRIM(u.email)) = :email", User.class);
-            query.setParameter("email", email.trim().toLowerCase(Locale.ROOT));
-            List<User> results = query.setMaxResults(1).getResultList();
+            List<User> results = userJpaRepo.findByNormalizedEmail(email.trim());
             return results.isEmpty() ? null : results.get(0);
         } catch (Exception e) {
             throw new DataAccessException("Không thể tải tài khoản theo email.", e);
@@ -87,8 +151,7 @@ public class UserRepository implements IUserRepository {
             if (user.getRoleid() <= 0) {
                 user.setRoleid(5);
             }
-            enma.persist(user);
-            enma.flush();
+            userJpaRepo.saveAndFlush(user);
         } catch (Exception e) {
             throw new DataAccessException("Không thể thêm tài khoản.", e);
         }
@@ -98,8 +161,7 @@ public class UserRepository implements IUserRepository {
     @Transactional
     public void update(User user) {
         try {
-            enma.merge(user);
-            enma.flush();
+            userJpaRepo.saveAndFlush(user);
         } catch (Exception e) {
             throw new DataAccessException("Không thể cập nhật tài khoản.", e);
         }
@@ -109,7 +171,7 @@ public class UserRepository implements IUserRepository {
     @Transactional
     public User updateProfile(int userId, String fullName, String phone, String avatar) {
         try {
-            User existing = enma.find(User.class, userId);
+            User existing = userJpaRepo.findById(userId).orElse(null);
             if (existing == null) {
                 return null;
             }
@@ -118,8 +180,7 @@ public class UserRepository implements IUserRepository {
             if (avatar != null && !avatar.isBlank()) {
                 existing.setAvatar(avatar.trim());
             }
-            enma.flush();
-            return existing;
+            return userJpaRepo.saveAndFlush(existing);
         } catch (Exception e) {
             throw new DataAccessException("Không thể cập nhật hồ sơ cá nhân.", e);
         }
@@ -129,13 +190,12 @@ public class UserRepository implements IUserRepository {
     @Transactional
     public User updateEmail(int userId, String newEmail) {
         try {
-            User existing = enma.find(User.class, userId);
+            User existing = userJpaRepo.findById(userId).orElse(null);
             if (existing == null) {
                 return null;
             }
             existing.setEmail(newEmail);
-            enma.flush();
-            return existing;
+            return userJpaRepo.saveAndFlush(existing);
         } catch (Exception e) {
             throw new DataAccessException("Không thể cập nhật email mới.", e);
         }
@@ -158,10 +218,10 @@ public class UserRepository implements IUserRepository {
     @Transactional
     public void updateStatus(int userId, int status) {
         try {
-            User user = enma.find(User.class, userId);
+            User user = userJpaRepo.findById(userId).orElse(null);
             if (user != null) {
                 user.setStatus(status);
-                enma.flush();
+                userJpaRepo.saveAndFlush(user);
             }
         } catch (Exception e) {
             throw new DataAccessException("Không thể cập nhật trạng thái kích hoạt tài khoản.", e);
@@ -212,11 +272,17 @@ public class UserRepository implements IUserRepository {
     @Transactional
     public void delete(int id) {
         try {
-            User user = enma.find(User.class, id);
-            if (user != null) {
-                enma.remove(user);
-                enma.flush();
+            if (!userJpaRepo.existsById(id)) {
+                return;
             }
+            enma.createQuery("DELETE FROM RememberToken t WHERE t.userId = :userId")
+                    .setParameter("userId", id)
+                    .executeUpdate();
+            enma.createQuery("DELETE FROM Video v WHERE v.user.id = :userId")
+                    .setParameter("userId", id)
+                    .executeUpdate();
+            userJpaRepo.deleteById(id);
+            userJpaRepo.flush();
         } catch (Exception e) {
             throw new DataAccessException("Không thể xóa tài khoản.", e);
         }
@@ -229,7 +295,24 @@ public class UserRepository implements IUserRepository {
 
     @Override
     public boolean checkExistEmail(String email, int excludedId) {
-        return exists("email", email, excludedId);
+        if (email == null || email.isBlank()) {
+            return false;
+        }
+        try {
+            String jpql = "SELECT COUNT(u) FROM User u WHERE LOWER(TRIM(u.email)) = :value";
+            if (excludedId > 0) {
+                jpql += " AND u.id <> :excludedId";
+            }
+            TypedQuery<Long> query = enma.createQuery(jpql, Long.class);
+            query.setParameter("value", email.trim().toLowerCase(Locale.ROOT));
+            if (excludedId > 0) {
+                query.setParameter("excludedId", excludedId);
+            }
+            Long count = query.getSingleResult();
+            return count != null && count > 0;
+        } catch (Exception e) {
+            throw new DataAccessException("Không thể kiểm tra email tài khoản.", e);
+        }
     }
 
     @Override
@@ -276,5 +359,13 @@ public class UserRepository implements IUserRepository {
     @Override
     public List<User> getAll() {
         return findAll();
+    }
+
+    private String normalizeKeyword(String keyword) {
+        if (keyword == null) {
+            return null;
+        }
+        String trimmed = keyword.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 }

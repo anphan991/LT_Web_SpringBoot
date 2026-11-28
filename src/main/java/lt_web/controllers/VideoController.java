@@ -530,15 +530,7 @@ public class VideoController {
     }
 
     private int parsePositiveInt(String value) {
-        if (value == null || value.isBlank()) {
-            return -1;
-        }
-        try {
-            int parsed = Integer.parseInt(value.trim());
-            return parsed > 0 ? parsed : -1;
-        } catch (NumberFormatException e) {
-            return -1;
-        }
+        return ValidationUtil.parsePositiveInt(value);
     }
 
     private int parseActive(String value) {

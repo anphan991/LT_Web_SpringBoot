@@ -1,13 +1,15 @@
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <c:set var="isEdit" value="${formMode == 'edit'}" />
+<c:set var="formFullname" value="${draftFullname != null ? draftFullname : user.fullName}" />
+<c:set var="backListUrl" value="${returnTo == 'users' ? '/admin/user/list' : '/admin/category/list#users-section'}" />
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>${isEdit ? 'Chỉnh sửa tài khoản' : 'Thêm tài khoản'} - ShopSpringBoot</title>
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/admin.css?v=20261119-v3">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/admin.css?v=20261128-v1">
 </head>
 <body class="admin-page">
 <div class="admin-shell">
@@ -19,7 +21,7 @@
             <section class="admin-form-card">
                 <div class="admin-form-header">
                     <h1>${isEdit ? 'Chỉnh sửa tài khoản' : 'Thêm tài khoản'}</h1>
-                    <a class="admin-back" href="${pageContext.request.contextPath}/admin/category/list#users-section">Quay lại danh sách</a>
+                    <a class="admin-back" href="${pageContext.request.contextPath}${backListUrl}">Quay lại danh sách</a>
                 </div>
                 <div class="admin-form-body">
                     <c:if test="${not empty alert}">
@@ -28,6 +30,9 @@
 
                     <form id="userForm" data-mode="${isEdit ? 'edit' : 'add'}" action="${pageContext.request.contextPath}${isEdit ? '/admin/user/edit' : '/admin/user/add'}" method="post" novalidate>
                         <input type="hidden" name="csrfToken" value="<c:out value='${sessionScope.csrfToken}' />">
+                        <c:if test="${not empty returnTo}">
+                            <input type="hidden" name="returnTo" value="<c:out value='${returnTo}' />">
+                        </c:if>
                         <c:if test="${isEdit}">
                             <input type="hidden" name="id" value="${user.id}">
                         </c:if>
@@ -40,7 +45,7 @@
                             </div>
                             <div class="admin-field">
                                 <label for="fullname">Họ và tên</label>
-                                <input id="fullname" class="${not empty errors.fullname ? 'is-invalid' : ''}" type="text" name="fullname" value="<c:out value='${user.fullName}' />" required maxlength="100">
+                                <input id="fullname" class="${not empty errors.fullname ? 'is-invalid' : ''}" type="text" name="fullname" value="<c:out value='${formFullname}' />" required maxlength="100">
                                 <div class="invalid-feedback ${not empty errors.fullname ? 'd-block' : ''}"><c:out value="${errors.fullname}" /></div>
                             </div>
                             <div class="admin-field">
@@ -67,11 +72,21 @@
                                     <option value="5" ${user.roleid == 5 || user.roleid == 0 ? 'selected' : ''}>Member</option>
                                 </select>
                             </div>
+                            <div class="admin-field">
+                                <label for="status">Trạng thái tài khoản</label>
+                                <select id="status" name="status" ${isEdit && user.id == sessionScope.account.id ? 'disabled' : ''}>
+                                    <option value="1" ${user.status != 0 ? 'selected' : ''}>Đã kích hoạt</option>
+                                    <option value="0" ${user.status == 0 ? 'selected' : ''}>Chờ kích hoạt</option>
+                                </select>
+                                <c:if test="${isEdit && user.id == sessionScope.account.id}">
+                                    <input type="hidden" name="status" value="1">
+                                </c:if>
+                            </div>
                         </div>
 
                         <div class="admin-form-actions">
                             <button class="admin-button admin-button-primary" type="submit">${isEdit ? 'Lưu thay đổi' : 'Thêm tài khoản'}</button>
-                            <a class="admin-button admin-button-secondary" href="${pageContext.request.contextPath}/admin/category/list#users-section">Hủy</a>
+                            <a class="admin-button admin-button-secondary" href="${pageContext.request.contextPath}${backListUrl}">Hủy</a>
                         </div>
                     </form>
                 </div>

@@ -1,12 +1,12 @@
 package lt_web.repository.impl;
 
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
-import jakarta.persistence.TypedQuery;
 import java.util.List;
 import lt_web.entity.Category;
 import lt_web.exceptions.DataAccessException;
+import lt_web.repository.CategoryJpaRepository;
 import lt_web.repository.ICategoryRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,14 +14,17 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class CategoryRepository implements ICategoryRepository {
 
-    @PersistenceContext
-    private EntityManager enma;
+    private final CategoryJpaRepository categoryJpaRepo;
+
+    @Autowired
+    public CategoryRepository(CategoryJpaRepository categoryJpaRepo) {
+        this.categoryJpaRepo = categoryJpaRepo;
+    }
 
     @Override
     public List<Category> findAll() {
         try {
-            TypedQuery<Category> query = enma.createNamedQuery("Category.findAll", Category.class);
-            return query.getResultList();
+            return categoryJpaRepo.findAllByOrderByCateidAsc();
         } catch (Exception e) {
             throw new DataAccessException("Không thể tải danh mục từ MySQL qua Spring Data JPA.", e);
         }
@@ -30,7 +33,7 @@ public class CategoryRepository implements ICategoryRepository {
     @Override
     public Category findById(int id) {
         try {
-            return enma.find(Category.class, id);
+            return categoryJpaRepo.findById(id).orElse(null);
         } catch (Exception e) {
             throw new DataAccessException("Không thể tải danh mục theo ID.", e);
         }
@@ -40,8 +43,7 @@ public class CategoryRepository implements ICategoryRepository {
     @Transactional
     public void create(Category category) {
         try {
-            enma.persist(category);
-            enma.flush();
+            categoryJpaRepo.saveAndFlush(category);
         } catch (Exception e) {
             throw new DataAccessException("Không thể thêm danh mục.", e);
         }
@@ -51,8 +53,7 @@ public class CategoryRepository implements ICategoryRepository {
     @Transactional
     public void update(Category category) {
         try {
-            enma.merge(category);
-            enma.flush();
+            categoryJpaRepo.saveAndFlush(category);
         } catch (Exception e) {
             throw new DataAccessException("Không thể cập nhật danh mục.", e);
         }
@@ -62,10 +63,9 @@ public class CategoryRepository implements ICategoryRepository {
     @Transactional
     public void delete(int id) {
         try {
-            Category category = enma.find(Category.class, id);
-            if (category != null) {
-                enma.remove(category);
-                enma.flush();
+            if (categoryJpaRepo.existsById(id)) {
+                categoryJpaRepo.deleteById(id);
+                categoryJpaRepo.flush();
             }
         } catch (Exception e) {
             throw new DataAccessException("Không thể xóa danh mục.", e);
@@ -75,10 +75,11 @@ public class CategoryRepository implements ICategoryRepository {
     @Override
     public List<Category> findByCategoryname(String catname) {
         try {
-            String jpql = "SELECT c FROM Category c WHERE c.catename LIKE :catname ORDER BY c.cateid ASC";
-            TypedQuery<Category> query = enma.createQuery(jpql, Category.class);
-            query.setParameter("catname", likePattern(catname));
-            return query.getResultList();
+            String normalized = normalizeKeyword(catname);
+            if (normalized.isEmpty()) {
+                return categoryJpaRepo.findAllByOrderByCateidAsc();
+            }
+            return categoryJpaRepo.findByCatenameContainingIgnoreCaseOrderByCateidAsc(normalized);
         } catch (Exception e) {
             throw new DataAccessException("Không thể tìm danh mục từ MySQL qua Spring Data JPA.", e);
         }
@@ -89,12 +90,12 @@ public class CategoryRepository implements ICategoryRepository {
         int safePage = Math.max(0, page);
         int safePageSize = Math.max(1, pagesize);
         try {
-            String jpql = "SELECT c FROM Category c WHERE c.catename LIKE :catname ORDER BY c.cateid ASC";
-            TypedQuery<Category> query = enma.createQuery(jpql, Category.class);
-            query.setParameter("catname", likePattern(catname));
-            query.setFirstResult(safePage * safePageSize);
-            query.setMaxResults(safePageSize);
-            return query.getResultList();
+            String normalized = normalizeKeyword(catname);
+            PageRequest pageable = PageRequest.of(safePage, safePageSize);
+            if (normalized.isEmpty()) {
+                return categoryJpaRepo.findAllByOrderByCateidAsc(pageable).getContent();
+            }
+            return categoryJpaRepo.findByCatenameContainingIgnoreCaseOrderByCateidAsc(normalized, pageable).getContent();
         } catch (Exception e) {
             throw new DataAccessException("Không thể tìm kiếm và phân trang danh mục.", e);
         }
@@ -105,10 +106,7 @@ public class CategoryRepository implements ICategoryRepository {
         int safePage = Math.max(0, page);
         int safePageSize = Math.max(1, pagesize);
         try {
-            TypedQuery<Category> query = enma.createNamedQuery("Category.findAll", Category.class);
-            query.setFirstResult(safePage * safePageSize);
-            query.setMaxResults(safePageSize);
-            return query.getResultList();
+            return categoryJpaRepo.findAllByOrderByCateidAsc(PageRequest.of(safePage, safePageSize)).getContent();
         } catch (Exception e) {
             throw new DataAccessException("Không thể phân trang danh mục.", e);
         }
@@ -117,8 +115,7 @@ public class CategoryRepository implements ICategoryRepository {
     @Override
     public int count() {
         try {
-            Long result = enma.createQuery("SELECT count(c) FROM Category c", Long.class).getSingleResult();
-            return result == null ? 0 : result.intValue();
+            return (int) categoryJpaRepo.count();
         } catch (Exception e) {
             throw new DataAccessException("Không thể đếm số lượng danh mục.", e);
         }
@@ -127,11 +124,11 @@ public class CategoryRepository implements ICategoryRepository {
     @Override
     public int countByCategoryname(String catname) {
         try {
-            String jpql = "SELECT count(c) FROM Category c WHERE c.catename LIKE :catname";
-            TypedQuery<Long> query = enma.createQuery(jpql, Long.class);
-            query.setParameter("catname", likePattern(catname));
-            Long result = query.getSingleResult();
-            return result == null ? 0 : result.intValue();
+            String normalized = normalizeKeyword(catname);
+            if (normalized.isEmpty()) {
+                return (int) categoryJpaRepo.count();
+            }
+            return (int) categoryJpaRepo.countByCatenameContainingIgnoreCase(normalized);
         } catch (Exception e) {
             throw new DataAccessException("Không thể đếm số lượng danh mục theo từ khóa.", e);
         }
@@ -160,11 +157,7 @@ public class CategoryRepository implements ICategoryRepository {
             return null;
         }
         try {
-            String jpql = "SELECT c FROM Category c WHERE c.catename = :name";
-            TypedQuery<Category> query = enma.createQuery(jpql, Category.class);
-            query.setParameter("name", name.trim());
-            List<Category> results = query.setMaxResults(1).getResultList();
-            return results.isEmpty() ? null : results.get(0);
+            return categoryJpaRepo.findFirstByCatename(name.trim()).orElse(null);
         } catch (Exception e) {
             throw new DataAccessException("Không thể tải danh mục theo tên.", e);
         }
@@ -180,7 +173,7 @@ public class CategoryRepository implements ICategoryRepository {
         return findByCategoryname(keyword);
     }
 
-    private String likePattern(String keyword) {
-        return "%" + (keyword == null ? "" : keyword.trim()) + "%";
+    private String normalizeKeyword(String keyword) {
+        return keyword == null ? "" : keyword.trim();
     }
 }

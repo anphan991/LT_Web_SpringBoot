@@ -30,13 +30,17 @@ public class UserAddController {
     }
 
     @GetMapping("/admin/user/add")
-    public String showAddUser(HttpServletRequest req, Model model) {
+    public String showAddUser(
+            @RequestParam(value = "returnTo", required = false) String returnTo,
+            HttpServletRequest req,
+            Model model) {
         if (!AdminAccess.isAdmin(req)) {
-            return "redirect:/admin/category/list";
+            return "redirect:/admin/category/list?forbidden=1#users-section";
         }
         User user = new User();
         user.setRoleid(5);
-        return showForm(model, user, null);
+        user.setStatus(1);
+        return showForm(model, user, null, null, returnTo);
     }
 
     @PostMapping("/admin/user/add")
@@ -46,11 +50,13 @@ public class UserAddController {
             @RequestParam(value = "email", required = false) String rawEmail,
             @RequestParam(value = "phone", required = false) String rawPhone,
             @RequestParam(value = "roleid", required = false) String rawRoleId,
+            @RequestParam(value = "status", required = false) String rawStatus,
             @RequestParam(value = "password", required = false) String password,
+            @RequestParam(value = "returnTo", required = false) String returnTo,
             HttpServletRequest req,
             Model model) {
         if (!AdminAccess.isAdmin(req)) {
-            return "redirect:/admin/category/list";
+            return "redirect:/admin/category/list?forbidden=1#users-section";
         }
 
         String username = trim(rawUsername);
@@ -61,6 +67,7 @@ public class UserAddController {
         user.setEmail(trimOrNull(rawEmail));
         user.setPhone(trimOrNull(rawPhone));
         user.setRoleid(parseRole(rawRoleId));
+        user.setStatus(parseStatus(rawStatus));
 
         Map<String, String> errors = new LinkedHashMap<>();
         if (username.isBlank()) {
@@ -96,21 +103,30 @@ public class UserAddController {
         }
         if (!errors.isEmpty()) {
             model.addAttribute("errors", errors);
-            return showForm(model, user, errors.values().iterator().next());
+            return showForm(model, user, fullname, errors.values().iterator().next(), returnTo);
         }
 
         try {
             userService.create(user, password);
-            return "redirect:/admin/category/list#users-section";
+            if ("users".equalsIgnoreCase(returnTo)) {
+                return "redirect:/admin/user/list?userAdded=1";
+            }
+            return "redirect:/admin/category/list?userAdded=1#users-section";
         } catch (DataAccessException e) {
             LOGGER.warn("Không thể thêm tài khoản", e);
-            return showForm(model, user, "Không thể lưu tài khoản. Vui lòng thử lại.");
+            return showForm(model, user, fullname, "Không thể lưu tài khoản. Vui lòng thử lại.", returnTo);
         }
     }
 
-    private String showForm(Model model, User user, String alert) {
+    private String showForm(Model model, User user, String draftFullname, String alert, String returnTo) {
         model.addAttribute("user", user);
         model.addAttribute("formMode", "add");
+        if (draftFullname != null) {
+            model.addAttribute("draftFullname", draftFullname);
+        }
+        if (returnTo != null && !returnTo.isBlank()) {
+            model.addAttribute("returnTo", returnTo.trim());
+        }
         if (alert != null) {
             model.addAttribute("alert", alert);
         }
@@ -127,6 +143,10 @@ public class UserAddController {
         } catch (NumberFormatException e) {
             return 5;
         }
+    }
+
+    private int parseStatus(String value) {
+        return "0".equals(trim(value)) ? 0 : 1;
     }
 
     private String trim(String value) {

@@ -125,7 +125,7 @@ public class CategoryEditController {
 
         try {
             cateService.edit(category);
-            return "redirect:/admin/category/list";
+            return "redirect:/admin/category/list?categoryUpdated=1";
         } catch (DataAccessException | IllegalStateException e) {
             FileStorage.deleteQuietly(storedName);
             LOGGER.warn("Không thể cập nhật danh mục", e);
@@ -140,13 +140,6 @@ public class CategoryEditController {
     }
 
     private int parseId(String value) {
-        if (value == null || value.isBlank()) {
-            return -1;
-        }
-        try {
-            return Integer.parseInt(value.trim());
-        } catch (NumberFormatException e) {
-            return -1;
-        }
+        return ValidationUtil.parsePositiveInt(value);
     }
 }

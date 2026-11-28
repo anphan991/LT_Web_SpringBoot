@@ -23,10 +23,6 @@ public class RememberMeFilter extends OncePerRequestFilter {
         this.rememberMeService = rememberMeService;
     }
 
-    public RememberMeFilter() {
-        this(new RememberMeService());
-    }
-
     @Override
     protected void doFilterInternal(HttpServletRequest req, HttpServletResponse resp, FilterChain chain)
             throws ServletException, IOException {

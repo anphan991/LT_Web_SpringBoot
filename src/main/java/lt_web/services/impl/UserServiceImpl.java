@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Locale;
 import lt_web.entity.User;
 import lt_web.repository.IUserRepository;
-import lt_web.repository.impl.UserRepository;
 import lt_web.services.UserService;
 import lt_web.utils.PasswordHasher;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,10 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class UserServiceImpl implements UserService {
     private final IUserRepository userRepo;
-
-    public UserServiceImpl() {
-        this(new UserRepository());
-    }
 
     @Autowired
     public UserServiceImpl(IUserRepository userRepo) {
@@ -133,6 +128,9 @@ public class UserServiceImpl implements UserService {
         if (user.getRoleid() <= 0) {
             user.setRoleid(existing.getRoleid());
         }
+        if (user.getStatus() == null) {
+            user.setStatus(existing.getStatus());
+        }
         userRepo.update(user);
         return true;
     }
@@ -209,5 +207,41 @@ public class UserServiceImpl implements UserService {
         } catch (Exception ignored) {
         }
         return userRepo.findAll();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<User> findAll(int page, int pageSize) {
+        return userRepo.findAll(page, pageSize);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<User> search(String keyword, Integer roleid, int page, int pageSize) {
+        return userRepo.search(keyword, roleid, page, pageSize);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public int count() {
+        return userRepo.count();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public int countSearch(String keyword, Integer roleid) {
+        return userRepo.countSearch(keyword, roleid);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public int countByRole(int roleid) {
+        return userRepo.countByRole(roleid);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public int countByStatus(int status) {
+        return userRepo.countByStatus(status);
     }
 }

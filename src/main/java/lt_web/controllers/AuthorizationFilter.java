@@ -8,7 +8,6 @@ import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import lt_web.entity.User;
 import lt_web.services.UserService;
-import lt_web.services.impl.UserServiceImpl;
 import lt_web.utils.Constant;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -21,10 +20,6 @@ public class AuthorizationFilter extends OncePerRequestFilter {
     @Autowired
     public AuthorizationFilter(UserService userService) {
         this.userService = userService;
-    }
-
-    public AuthorizationFilter() {
-        this(new UserServiceImpl());
     }
 
     @Override

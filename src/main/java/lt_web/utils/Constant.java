@@ -49,7 +49,9 @@ public class Constant {
         public static final String ADMIN_ADD_CATEGORY = "admin/add-category";
         public static final String ADMIN_EDIT_CATEGORY = "admin/edit-category";
         public static final String ADMIN_DELETE_CATEGORY = "admin/delete-category";
+        public static final String ADMIN_LIST_USER = "admin/list-user";
         public static final String ADMIN_USER_FORM = "admin/user-form";
+        public static final String ADMIN_DELETE_USER = "admin/delete-user";
     }
 
     public static class Path {
@@ -67,6 +69,8 @@ public class Constant {
         public static final String ADMIN_ADD_CATEGORY = "/WEB-INF/views/admin/add-category.jsp";
         public static final String ADMIN_EDIT_CATEGORY = "/WEB-INF/views/admin/edit-category.jsp";
         public static final String ADMIN_DELETE_CATEGORY = "/WEB-INF/views/admin/delete-category.jsp";
+        public static final String ADMIN_LIST_USER = "/WEB-INF/views/admin/list-user.jsp";
         public static final String ADMIN_USER_FORM = "/WEB-INF/views/admin/user-form.jsp";
+        public static final String ADMIN_DELETE_USER = "/WEB-INF/views/admin/delete-user.jsp";
     }
 }

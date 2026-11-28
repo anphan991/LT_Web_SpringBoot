@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.util.List;
 import lt_web.entity.Category;
 import lt_web.repository.ICategoryRepository;
-import lt_web.repository.impl.CategoryRepository;
 import lt_web.services.CategoryService;
 import lt_web.utils.FileStorage;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,10 +14,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class CategoryServiceImpl implements CategoryService {
     private final ICategoryRepository categoryRepo;
-
-    public CategoryServiceImpl() {
-        this(new CategoryRepository());
-    }
 
     @Autowired
     public CategoryServiceImpl(ICategoryRepository categoryRepo) {

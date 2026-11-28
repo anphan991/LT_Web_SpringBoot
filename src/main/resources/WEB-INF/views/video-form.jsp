@@ -75,9 +75,6 @@
 
         <c:url value="/video/${formMode == 'edit' ? 'edit' : 'add'}" var="formActionUrl">
             <c:param name="csrfToken" value="${sessionScope.csrfToken}" />
-            <c:if test="${formMode == 'edit'}">
-                <c:param name="id" value="${video.videoId}" />
-            </c:if>
         </c:url>
         <form id="videoForm" data-mode="${formMode}" action="${formActionUrl}"
               method="post"

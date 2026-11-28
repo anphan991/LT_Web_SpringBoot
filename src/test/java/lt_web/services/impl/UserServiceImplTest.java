@@ -201,5 +201,35 @@ class UserServiceImplTest {
         public List<User> getAll() {
             return findAll();
         }
+
+        @Override
+        public List<User> findAll(int page, int pageSize) {
+            return findAll();
+        }
+
+        @Override
+        public List<User> search(String keyword, Integer roleid, int page, int pageSize) {
+            return findAll();
+        }
+
+        @Override
+        public int count() {
+            return user == null ? 0 : 1;
+        }
+
+        @Override
+        public int countSearch(String keyword, Integer roleid) {
+            return count();
+        }
+
+        @Override
+        public int countByRole(int roleid) {
+            return user != null && user.getRoleid() == roleid ? 1 : 0;
+        }
+
+        @Override
+        public int countByStatus(int status) {
+            return user != null && Integer.valueOf(status).equals(user.getStatus()) ? 1 : 0;
+        }
     }
 }

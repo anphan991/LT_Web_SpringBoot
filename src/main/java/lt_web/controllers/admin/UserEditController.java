@@ -33,16 +33,17 @@ public class UserEditController {
     @GetMapping("/admin/user/edit")
     public String showEditUser(
             @RequestParam(value = "id", required = false) String idParam,
+            @RequestParam(value = "returnTo", required = false) String returnTo,
             HttpServletRequest req,
             Model model) {
         if (!AdminAccess.isAdmin(req)) {
-            return "redirect:/admin/category/list";
+            return "redirect:/admin/category/list?forbidden=1#users-section";
         }
         User user = userService.get(parseId(idParam));
         if (user == null) {
-            return "redirect:/admin/category/list?userError=missing#users-section";
+            return redirectWithParam(returnTo, "userError=missing");
         }
-        return showForm(model, user, null);
+        return showForm(model, user, null, null, returnTo);
     }
 
     @PostMapping("/admin/user/edit")
@@ -52,17 +53,19 @@ public class UserEditController {
             @RequestParam(value = "email", required = false) String rawEmail,
             @RequestParam(value = "phone", required = false) String rawPhone,
             @RequestParam(value = "roleid", required = false) String rawRoleId,
+            @RequestParam(value = "status", required = false) String rawStatus,
             @RequestParam(value = "password", required = false) String password,
+            @RequestParam(value = "returnTo", required = false) String returnTo,
             HttpServletRequest req,
             Model model) {
         if (!AdminAccess.isAdmin(req)) {
-            return "redirect:/admin/category/list";
+            return "redirect:/admin/category/list?forbidden=1#users-section";
         }
 
         int id = parseId(idParam);
         User existing = userService.get(id);
         if (existing == null) {
-            return "redirect:/admin/category/list?userError=missing#users-section";
+            return redirectWithParam(returnTo, "userError=missing");
         }
 
         String fullname = trim(rawFullname);
@@ -73,6 +76,13 @@ public class UserEditController {
         user.setEmail(trimOrNull(rawEmail));
         user.setPhone(trimOrNull(rawPhone));
         user.setRoleid(parseRole(rawRoleId));
+        user.setStatus(parseStatus(rawStatus, existing.getStatus()));
+
+        HttpSession session = req.getSession(false);
+        User current = session == null ? null : (User) session.getAttribute(Constant.SESSION_ACCOUNT);
+        if (current != null && current.getId() == id) {
+            user.setStatus(1);
+        }
 
         Map<String, String> errors = new LinkedHashMap<>();
         if (fullname.isEmpty()) {
@@ -97,26 +107,37 @@ public class UserEditController {
         }
         if (!errors.isEmpty()) {
             model.addAttribute("errors", errors);
-            return showForm(model, user, errors.values().iterator().next());
+            return showForm(model, user, fullname, errors.values().iterator().next(), returnTo);
         }
 
         try {
             userService.update(user, password);
-            HttpSession session = req.getSession(false);
-            User current = session == null ? null : (User) session.getAttribute(Constant.SESSION_ACCOUNT);
             if (current != null && current.getId() == id) {
                 session.setAttribute(Constant.SESSION_ACCOUNT, userService.get(id));
             }
-            return "redirect:/admin/category/list#users-section";
+            return redirectWithParam(returnTo, "userUpdated=1");
         } catch (DataAccessException e) {
             LOGGER.warn("Không thể cập nhật tài khoản", e);
-            return showForm(model, user, "Không thể lưu thay đổi. Vui lòng thử lại.");
+            return showForm(model, user, fullname, "Không thể lưu thay đổi. Vui lòng thử lại.", returnTo);
         }
     }
 
-    private String showForm(Model model, User user, String alert) {
+    private String redirectWithParam(String returnTo, String queryParam) {
+        if ("users".equalsIgnoreCase(returnTo)) {
+            return "redirect:/admin/user/list?" + queryParam;
+        }
+        return "redirect:/admin/category/list?" + queryParam + "#users-section";
+    }
+
+    private String showForm(Model model, User user, String draftFullname, String alert, String returnTo) {
         model.addAttribute("user", user);
         model.addAttribute("formMode", "edit");
+        if (draftFullname != null) {
+            model.addAttribute("draftFullname", draftFullname);
+        }
+        if (returnTo != null && !returnTo.isBlank()) {
+            model.addAttribute("returnTo", returnTo.trim());
+        }
         if (alert != null) {
             model.addAttribute("alert", alert);
         }
@@ -144,6 +165,13 @@ public class UserEditController {
         } catch (NumberFormatException e) {
             return 5;
         }
+    }
+
+    private Integer parseStatus(String value, Integer fallback) {
+        if (value == null || value.isBlank()) {
+            return fallback == null ? 1 : fallback;
+        }
+        return "0".equals(value.trim()) ? 0 : 1;
     }
 
     private String trim(String value) {

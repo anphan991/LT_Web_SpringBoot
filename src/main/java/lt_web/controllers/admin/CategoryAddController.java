@@ -91,7 +91,7 @@ public class CategoryAddController {
 
         try {
             cateService.insert(category);
-            return "redirect:/admin/category/list";
+            return "redirect:/admin/category/list?categoryAdded=1";
         } catch (DataAccessException e) {
             FileStorage.deleteQuietly(storedName);
             LOGGER.warn("Không thể thêm danh mục", e);

@@ -86,6 +86,41 @@ public final class ValidationUtil {
         }
     }
 
+    /**
+     * Parses a positive integer ID and tolerates identical comma-joined duplicates
+     * produced when a parameter appears in both query string and form body.
+     */
+    public static int parsePositiveInt(String value) {
+        if (value == null || value.isBlank()) {
+            return -1;
+        }
+        String candidate = value.trim();
+        if (candidate.contains(",")) {
+            String unique = null;
+            for (String token : candidate.split(",")) {
+                String clean = token.trim();
+                if (clean.isEmpty()) {
+                    continue;
+                }
+                if (unique == null) {
+                    unique = clean;
+                } else if (!unique.equals(clean)) {
+                    return -1;
+                }
+            }
+            candidate = unique == null ? "" : unique;
+        }
+        if (candidate.isEmpty()) {
+            return -1;
+        }
+        try {
+            int parsed = Integer.parseInt(candidate);
+            return parsed > 0 ? parsed : -1;
+        } catch (NumberFormatException e) {
+            return -1;
+        }
+    }
+
     public static void close() {
         FACTORY.close();
     }

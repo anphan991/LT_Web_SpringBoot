@@ -5,6 +5,13 @@ import lt_web.entity.User;
 
 public interface IUserRepository {
     List<User> findAll();
+    List<User> findAll(int page, int pageSize);
+    List<User> search(String keyword, Integer roleid, int page, int pageSize);
+    int count();
+    int countSearch(String keyword, Integer roleid);
+    int countByRole(int roleid);
+    int countByStatus(int status);
+
     User findById(int id);
     User findByUsername(String username);
     User findByEmail(String email);

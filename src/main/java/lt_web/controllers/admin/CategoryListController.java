@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 public class CategoryListController {
     private static final Logger LOGGER = LoggerFactory.getLogger(CategoryListController.class);
     private static final int PAGE_SIZE = 5;
+    private static final int USER_PAGE_SIZE = 5;
 
     private final CategoryService cateService;
     private final UserService userService;
@@ -33,6 +34,9 @@ public class CategoryListController {
     public String listCategories(
             @RequestParam(value = "keyword", required = false) String keyword,
             @RequestParam(value = "page", required = false) String pageParam,
+            @RequestParam(value = "userKeyword", required = false) String userKeyword,
+            @RequestParam(value = "userRole", required = false) String userRoleParam,
+            @RequestParam(value = "userPage", required = false) String userPageParam,
             Model model) {
         boolean hasKeyword = keyword != null && !keyword.isBlank();
         int requestedPage = parsePage(pageParam);
@@ -64,9 +68,21 @@ public class CategoryListController {
             model.addAttribute("dbError", "Không thể tải danh mục. Hãy kiểm tra MySQL đang chạy và cơ sở dữ liệu bt_lt_web đã tồn tại.");
         }
 
+        String trimmedUserKeyword = (userKeyword != null && !userKeyword.isBlank()) ? userKeyword.trim() : null;
+        Integer parsedUserRole = parseRoleFilter(userRoleParam);
+        int requestedUserPage = parsePage(userPageParam);
+
         List<User> userList;
+        int totalUsers = 0;
+        int filteredUsers = 0;
+        int userCurrentPage = 1;
+        int userTotalPages = 1;
         try {
-            userList = userService.getAll();
+            totalUsers = userService.count();
+            filteredUsers = userService.countSearch(trimmedUserKeyword, parsedUserRole);
+            userTotalPages = Math.max(1, (int) Math.ceil((double) filteredUsers / USER_PAGE_SIZE));
+            userCurrentPage = Math.min(requestedUserPage, userTotalPages);
+            userList = userService.search(trimmedUserKeyword, parsedUserRole, userCurrentPage - 1, USER_PAGE_SIZE);
         } catch (DataAccessException e) {
             LOGGER.warn("Không thể tải tài khoản trong trang quản trị", e);
             userList = List.of();
@@ -79,7 +95,15 @@ public class CategoryListController {
         model.addAttribute("currentPage", currentPage);
         model.addAttribute("totalPages", totalPages);
         model.addAttribute("pageOffset", (currentPage - 1) * PAGE_SIZE);
+
         model.addAttribute("userList", userList);
+        model.addAttribute("totalUsers", totalUsers);
+        model.addAttribute("filteredUsers", filteredUsers);
+        model.addAttribute("userCurrentPage", userCurrentPage);
+        model.addAttribute("userTotalPages", userTotalPages);
+        model.addAttribute("userPageOffset", (userCurrentPage - 1) * USER_PAGE_SIZE);
+        model.addAttribute("userKeyword", trimmedUserKeyword);
+        model.addAttribute("userRole", parsedUserRole);
         return Constant.View.ADMIN_LIST_CATEGORY;
     }
 
@@ -92,6 +116,18 @@ public class CategoryListController {
             return Math.max(1, page);
         } catch (NumberFormatException e) {
             return 1;
+        }
+    }
+
+    private Integer parseRoleFilter(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            int role = Integer.parseInt(value.trim());
+            return (role == 1 || role == 2 || role == 5) ? role : null;
+        } catch (NumberFormatException e) {
+            return null;
         }
     }
 }
